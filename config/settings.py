@@ -63,7 +63,7 @@ STATIC_URL = "static/"
 FINTS_PRODUCT_ID = os.getenv("FINTS_PRODUCT_ID", "")
 FINTS_PRODUCT_VERSION = os.getenv("FINTS_PRODUCT_VERSION", "")
 
-ACTUAL_API_URL = os.getenv("ACTUAL_API_URL", "http://localhost:5007/v1")
+ACTUAL_API_URL = os.getenv("ACTUAL_API_URL", "http://localhost:5007")
 ACTUAL_API_KEY = os.getenv("ACTUAL_API_KEY", "")
 
 TAN_SESSION_TIMEOUT_MINUTES = int(os.getenv("TAN_SESSION_TIMEOUT_MINUTES", "15"))

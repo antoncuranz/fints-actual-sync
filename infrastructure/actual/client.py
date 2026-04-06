@@ -7,7 +7,7 @@ from domain.ports import ActualAccount, ActualBudget, ImportResult
 
 class ActualClientAdapter:
     def __init__(self, base_url: str, api_key: str):
-        self._base_url = base_url.rstrip("/")
+        self._base_url = base_url.rstrip("/") + "/v1"
         self._client = httpx.Client(headers={"X-API-Key": api_key}, timeout=30.0)
 
     def close(self) -> None:
@@ -64,7 +64,7 @@ class ActualClientAdapter:
             raise ActualExportError(f"Get budgets request failed: {exc}") from exc
 
         return [
-            ActualBudget(sync_id=b.get("sync_id", b.get("id", "")), name=b.get("name", ""))
+            ActualBudget(sync_id=b.get("groupId", ""), name=b.get("name", ""))
             for b in resp.json().get("data", [])
         ]
 
