@@ -4,6 +4,7 @@ import logging
 from fints.client import FinTS3PinTanClient, NeedTANResponse
 
 from domain.entities import BankAccount, BankConnection, NormalizedTransaction
+from domain.exceptions import FinTSAuthenticationError, FinTSConnectionError
 from domain.ports import TANChallenge
 
 logger = logging.getLogger(__name__)
@@ -26,24 +27,35 @@ class FinTSClientAdapter:
             from_data=from_data,
         )
 
+    def _handle_fints_error(self, exc: Exception, context: str) -> None:
+        msg = str(exc).lower()
+        if any(kw in msg for kw in ("auth", "pin", "password", "locked", "9050", "9931")):
+            raise FinTSAuthenticationError(f"{context}: {exc}") from exc
+        raise FinTSConnectionError(f"{context}: {exc}") from exc
+
     def fetch_accounts(self, connection: BankConnection) -> list[BankAccount]:
         client = self._create_client(connection)
-        with client:
-            sepa_accounts = client.get_sepa_accounts()
-            info = client.get_information()
-            accounts_info = {a["iban"]: a for a in info.get("accounts", [])}
-            result = []
-            for sa in sepa_accounts:
-                detail = accounts_info.get(sa.iban, {})
-                result.append(BankAccount(
-                    iban=sa.iban,
-                    account_number=sa.accountnumber,
-                    bank_identifier=str(sa.bic) if sa.bic else "",
-                    currency=detail.get("currency", "EUR"),
-                    owner_name=", ".join(detail.get("owner_name", [""])),
-                    account_type=str(detail.get("type", "")),
-                ))
-            return result
+        try:
+            with client:
+                sepa_accounts = client.get_sepa_accounts()
+                info = client.get_information()
+                accounts_info = {a["iban"]: a for a in info.get("accounts", [])}
+                result = []
+                for sa in sepa_accounts:
+                    detail = accounts_info.get(sa.iban, {})
+                    result.append(BankAccount(
+                        iban=sa.iban,
+                        account_number=sa.accountnumber,
+                        bank_identifier=str(sa.bic) if sa.bic else "",
+                        currency=detail.get("currency", "EUR"),
+                        owner_name=", ".join(detail.get("owner_name", [""])),
+                        account_type=str(detail.get("type", "")),
+                    ))
+                return result
+        except (FinTSConnectionError, FinTSAuthenticationError):
+            raise
+        except Exception as exc:
+            self._handle_fints_error(exc, "fetch_accounts failed")
 
     def fetch_transactions(
         self,
@@ -53,18 +65,25 @@ class FinTSClientAdapter:
         end_date: datetime.date | None,
     ) -> list[NormalizedTransaction] | TANChallenge:
         client = self._create_client(connection)
-        with client:
-            accounts = client.get_sepa_accounts()
-            account = next(a for a in accounts if a.iban == iban)
-            result = client.get_transactions(account, start_date, end_date)
+        try:
+            with client:
+                accounts = client.get_sepa_accounts()
+                account = next((a for a in accounts if a.iban == iban), None)
+                if account is None:
+                    raise ValueError(f"No SEPA account found for IBAN {iban}")
+                result = client.get_transactions(account, start_date, end_date)
 
-        if isinstance(result, NeedTANResponse):
-            return TANChallenge(
-                challenge_text=result.challenge or "Please enter TAN",
-                client_state_blob=client.deconstruct(including_private=True),
-                dialog_state_blob=client.pause_dialog(),
-                tan_state_blob=result.get_data(),
-            )
+                if isinstance(result, NeedTANResponse):
+                    return TANChallenge(
+                        challenge_text=result.challenge or "Please enter TAN",
+                        client_state_blob=client.deconstruct(including_private=True),
+                        dialog_state_blob=client.pause_dialog(),
+                        tan_state_blob=result.get_data(),
+                    )
+        except (FinTSConnectionError, FinTSAuthenticationError, ValueError):
+            raise
+        except Exception as exc:
+            self._handle_fints_error(exc, "fetch_transactions failed")
 
         return [self._normalize(tx) for tx in result]
 
@@ -78,16 +97,21 @@ class FinTSClientAdapter:
     ) -> list[NormalizedTransaction] | TANChallenge:
         client = self._create_client(connection, from_data=client_state)
         challenge = NeedTANResponse.from_data(tan_state)
-        with client.resume_dialog(dialog_state):
-            result = client.send_tan(challenge, tan)
+        try:
+            with client.resume_dialog(dialog_state):
+                result = client.send_tan(challenge, tan)
 
-        if isinstance(result, NeedTANResponse):
-            return TANChallenge(
-                challenge_text=result.challenge or "Please enter TAN",
-                client_state_blob=client.deconstruct(including_private=True),
-                dialog_state_blob=client.pause_dialog(),
-                tan_state_blob=result.get_data(),
-            )
+                if isinstance(result, NeedTANResponse):
+                    return TANChallenge(
+                        challenge_text=result.challenge or "Please enter TAN",
+                        client_state_blob=client.deconstruct(including_private=True),
+                        dialog_state_blob=client.pause_dialog(),
+                        tan_state_blob=result.get_data(),
+                    )
+        except (FinTSConnectionError, FinTSAuthenticationError):
+            raise
+        except Exception as exc:
+            self._handle_fints_error(exc, "submit_tan failed")
 
         return [self._normalize(tx) for tx in result]
 
@@ -98,9 +122,9 @@ class FinTSClientAdapter:
 
         amount = data.get("amount", 0)
         if hasattr(amount, "amount"):
-            amount_val = int(amount.amount * 100)
+            amount_val = int(round(amount.amount * 100))
         else:
-            amount_val = int(float(str(amount).replace(",", ".")) * 100)
+            amount_val = int(round(float(str(amount).replace(",", ".")) * 100))
 
         date_str = ""
         raw_date = data.get("date")

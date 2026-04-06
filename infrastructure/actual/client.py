@@ -1,6 +1,7 @@
 import httpx
 
 from domain.entities import NormalizedTransaction
+from domain.exceptions import ActualExportError
 from domain.ports import ActualAccount, ActualBudget, ImportResult
 
 
@@ -8,6 +9,9 @@ class ActualClientAdapter:
     def __init__(self, base_url: str, api_key: str):
         self._base_url = base_url.rstrip("/")
         self._client = httpx.Client(headers={"X-API-Key": api_key}, timeout=30.0)
+
+    def close(self) -> None:
+        self._client.close()
 
     def import_transactions(
         self,
@@ -21,12 +25,18 @@ class ActualClientAdapter:
             params["budgetEncryptionPassword"] = budget_encryption_password
 
         payload = {"transactions": [self._serialize(tx) for tx in transactions]}
-        resp = self._client.post(
-            f"{self._base_url}/budgets/{budget_id}/accounts/{account_id}/transactions/import",
-            json=payload,
-            params=params,
-        )
-        resp.raise_for_status()
+        try:
+            resp = self._client.post(
+                f"{self._base_url}/budgets/{budget_id}/accounts/{account_id}/transactions/import",
+                json=payload,
+                params=params,
+            )
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise ActualExportError(f"Import failed: {exc.response.status_code} — {exc.response.text}") from exc
+        except httpx.RequestError as exc:
+            raise ActualExportError(f"Import request failed: {exc}") from exc
+
         data = resp.json()["data"]
         return ImportResult(added=data.get("added", []), updated=data.get("updated", []))
 
@@ -34,13 +44,25 @@ class ActualClientAdapter:
         params = {}
         if budget_encryption_password:
             params["budgetEncryptionPassword"] = budget_encryption_password
-        resp = self._client.get(f"{self._base_url}/budgets/{budget_id}/accounts", params=params)
-        resp.raise_for_status()
+        try:
+            resp = self._client.get(f"{self._base_url}/budgets/{budget_id}/accounts", params=params)
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise ActualExportError(f"Get accounts failed: {exc.response.status_code} — {exc.response.text}") from exc
+        except httpx.RequestError as exc:
+            raise ActualExportError(f"Get accounts request failed: {exc}") from exc
+
         return [ActualAccount(id=a["id"], name=a["name"]) for a in resp.json().get("data", [])]
 
     def get_budgets(self) -> list[ActualBudget]:
-        resp = self._client.get(f"{self._base_url}/budgets")
-        resp.raise_for_status()
+        try:
+            resp = self._client.get(f"{self._base_url}/budgets")
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise ActualExportError(f"Get budgets failed: {exc.response.status_code} — {exc.response.text}") from exc
+        except httpx.RequestError as exc:
+            raise ActualExportError(f"Get budgets request failed: {exc}") from exc
+
         return [
             ActualBudget(sync_id=b.get("sync_id", b.get("id", "")), name=b.get("name", ""))
             for b in resp.json().get("data", [])
