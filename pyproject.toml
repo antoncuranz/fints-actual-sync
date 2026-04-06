@@ -5,6 +5,7 @@ requires-python = ">=3.12"
 dependencies = [
     "django>=5.1",
     "cryptography>=42",
+    "fints",
     "psycopg[binary]",
     "httpx",
     "dj-database-url",
