@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta
 
-from django.conf import settings
-
 from application.dto import ImportResultDTO, TANRequiredDTO
+from application.use_cases._export import export_to_actual
 from domain.entities import ImportStatus
 from domain.exceptions import InvalidSessionState, TanSessionExpiredError
 from domain.ports import (
@@ -25,6 +24,7 @@ class SubmitTANUseCase:
         session_repo: SessionRepository,
         mapping_repo: MappingRepository,
         connection_repo: ConnectionRepository,
+        tan_session_timeout_minutes: int,
     ):
         self._fints = fints_port
         self._actual = actual_port
@@ -32,6 +32,7 @@ class SubmitTANUseCase:
         self._sessions = session_repo
         self._mappings = mapping_repo
         self._connections = connection_repo
+        self._timeout_minutes = tan_session_timeout_minutes
 
     def execute(self, session_id: int, tan: str) -> ImportResultDTO | TANRequiredDTO:
         session = self._sessions.get_by_id(session_id)
@@ -39,7 +40,7 @@ class SubmitTANUseCase:
         if session.status != ImportStatus.TAN_REQUIRED:
             raise InvalidSessionState(f"Session {session_id} is not waiting for TAN")
 
-        timeout = timedelta(minutes=settings.TAN_SESSION_TIMEOUT_MINUTES)
+        timeout = timedelta(minutes=self._timeout_minutes)
         if datetime.now() - session.started_at > timeout:
             self._sessions.delete(session.id)
             raise TanSessionExpiredError(f"Session {session_id} has expired")
@@ -60,11 +61,4 @@ class SubmitTANUseCase:
             return TANRequiredDTO(session_id=session.id, challenge_text=result.challenge_text)
 
         self._sessions.delete(session.id)
-        return self._export_to_actual(result, mapping)
-
-    def _export_to_actual(self, transactions, mapping) -> ImportResultDTO:
-        for tx in transactions:
-            tx.account = mapping.actual_account_id
-        budget_pw = mapping.budget_encryption_password
-        result = self._actual.import_transactions(mapping.actual_budget_id, mapping.actual_account_id, transactions, budget_pw)
-        return ImportResultDTO(status="completed", imported=len(result.added), updated=len(result.updated))
+        return export_to_actual(result, mapping, self._actual)

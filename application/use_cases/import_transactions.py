@@ -1,6 +1,7 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from application.dto import ImportResultDTO, TANRequiredDTO
+from application.use_cases._export import export_to_actual
 from domain.entities import ImportSession, ImportStatus
 from domain.ports import (
     ActualClientPort,
@@ -30,7 +31,7 @@ class ImportTransactionsUseCase:
         self._mappings = mapping_repo
         self._connections = connection_repo
 
-    def execute(self, mapping_id: int, start_date, end_date=None) -> ImportResultDTO | TANRequiredDTO:
+    def execute(self, mapping_id: int, start_date: date, end_date=None) -> ImportResultDTO | TANRequiredDTO:
         mapping = self._mappings.get_by_id(mapping_id)
         connection = self._connections.get_by_id(mapping.connection_id)
 
@@ -49,11 +50,4 @@ class ImportTransactionsUseCase:
             ))
             return TANRequiredDTO(session_id=session.id, challenge_text=result.challenge_text)
 
-        return self._export_to_actual(result, mapping)
-
-    def _export_to_actual(self, transactions, mapping) -> ImportResultDTO:
-        for tx in transactions:
-            tx.account = mapping.actual_account_id
-        budget_pw = mapping.budget_encryption_password
-        result = self._actual.import_transactions(mapping.actual_budget_id, mapping.actual_account_id, transactions, budget_pw)
-        return ImportResultDTO(status="completed", imported=len(result.added), updated=len(result.updated))
+        return export_to_actual(result, mapping, self._actual)
