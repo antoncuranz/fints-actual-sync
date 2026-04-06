@@ -54,6 +54,8 @@ DATABASES = {
 
 FERNET_KEY = os.getenv("FERNET_KEY", "")
 
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "http://localhost:8000").split(",")
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 STATIC_URL = "static/"
