@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}FinTS → Actual Importer{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h3 style="font-size: 18px;">FinTS → Actual Importer</h3>
+    <button class="btn btn-primary" hx-get="/connections/new/" hx-target="#modal-container" hx-swap="innerHTML">+ Add Connection</button>
+</div>
+
+<div id="modal-container"></div>
+
+{% for item in connections_with_mappings %}
+<div class="card">
+    <div class="card-header">
+        <div>
+            <div class="fw-600" style="font-size: 15px;">{{ item.connection.name }}</div>
+            <div class="text-muted text-small">BLZ {{ item.connection.blz }} · User {{ item.connection.user_id }}</div>
+        </div>
+        <div class="flex gap-2">
+            <button class="btn btn-outline btn-sm" hx-post="/connections/{{ item.connection.id }}/discover-accounts/" hx-swap="none">Discover</button>
+            <form hx-post="/connections/{{ item.connection.id }}/delete/" hx-swap="none">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+        </div>
+    </div>
+
+    {% if item.mappings %}
+    <table>
+        <thead>
+            <tr>
+                <th>Bank Account</th>
+                <th>→ Actual Account</th>
+                <th>Budget</th>
+                <th style="text-align: right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for mapping in item.mappings %}
+            <tr>
+                <td>
+                    <div class="fw-600">{{ mapping.bank_account_iban }}</div>
+                </td>
+                <td style="color: #4361ee;">{{ mapping.actual_account_id|truncatechars:12 }}</td>
+                <td>
+                    {{ mapping.actual_budget_id|truncatechars:16 }}
+                    {% if mapping.budget_encryption_password %}
+                    <span class="text-smaller text-muted">🔒 encrypted</span>
+                    {% endif %}
+                </td>
+                <td style="text-align: right;">
+                    <div class="flex gap-2" style="justify-content: flex-end;">
+                        <form hx-post="/api/imports/" hx-target="#modal-container" hx-swap="innerHTML">
+                            {% csrf_token %}
+                            <input type="hidden" name="mapping_id" value="{{ mapping.id }}">
+                            <input type="date" name="start_date" value="2024-01-01" style="display:none;">
+                            <button type="submit" class="btn btn-primary btn-sm">Import</button>
+                        </form>
+                        <form hx-post="/mappings/{{ mapping.id }}/delete/" hx-swap="none">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="card-body text-muted" style="font-size: 13px;">
+        No account mappings yet.
+        <a href="#" hx-get="/mappings/new/?connection_id={{ item.connection.id }}" hx-target="#modal-container" style="color: #4361ee;">Add mapping</a>
+    </div>
+    {% endif %}
+</div>
+{% empty %}
+<div class="card">
+    <div class="card-body text-center text-muted" style="padding: 40px;">
+        No bank connections configured yet.<br>
+        <a href="#" hx-get="/connections/new/" hx-target="#modal-container" style="color: #4361ee;">Add your first connection</a>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

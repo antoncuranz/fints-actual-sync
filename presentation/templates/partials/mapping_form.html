@@ -1,0 +1,46 @@
+<div class="overlay" id="mapping-modal">
+    <div class="modal">
+        <h3 class="text-center" style="margin-bottom: 20px; font-size: 16px;">Add Account Mapping</h3>
+        <form hx-post="/mappings/new/" hx-target="#modal-container">
+            {% csrf_token %}
+            <input type="hidden" name="connection_id" value="{{ connection_id }}">
+            <div class="form-group">
+                <label>Bank Account IBAN</label>
+                <input type="text" name="bank_account_iban" class="form-control" placeholder="DE89 3704 0044 ...">
+            </div>
+            <div class="form-group">
+                <label>Actual Budget</label>
+                <select name="actual_budget_id" class="form-control" id="budget-select">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Actual Account</label>
+                <select name="actual_account_id" class="form-control" id="account-select">
+                    <option value="">Select budget first</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Budget Encryption Password (optional)</label>
+                <input type="password" name="budget_encryption_password" class="form-control" placeholder="Leave empty if not encrypted">
+            </div>
+            <div class="flex gap-2" style="margin-top: 20px;">
+                <button type="button" class="btn btn-outline" style="flex:1;" onclick="document.getElementById('mapping-modal').remove()">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="flex:1;">Save</button>
+            </div>
+        </form>
+        <script>
+            fetch('/api/budgets/').then(r=>r.json()).then(budgets=>{
+                const sel=document.getElementById('budget-select');
+                sel.innerHTML='<option value="">Select budget</option>'+budgets.map(b=>`<option value="${b.sync_id}">${b.name}</option>`).join('');
+                sel.onchange=()=>{
+                    const pw=document.querySelector('[name=budget_encryption_password]').value;
+                    fetch(`/api/budgets/${sel.value}/accounts/${pw?'?budget_encryption_password='+pw:''}`).then(r=>r.json()).then(accounts=>{
+                        const asel=document.getElementById('account-select');
+                        asel.innerHTML=accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+                    });
+                };
+            });
+        </script>
+    </div>
+</div>

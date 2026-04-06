@@ -1,0 +1,17 @@
+{% if result.status == "tan_required" %}
+    {% include "partials/tan_modal.html" with session_id=result.session_id challenge_text=result.challenge_text %}
+{% elif result.status == "completed" %}
+<div class="overlay" id="result-modal">
+    <div class="modal text-center">
+        <div style="margin-bottom: 16px;">
+            <div style="width: 48px; height: 48px; background: #d4edda; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 22px;">✅</div>
+            <h3 style="font-size: 16px;">Import Complete</h3>
+        </div>
+        <div style="font-size: 14px; color: #666; margin-bottom: 16px;">
+            <div>{{ result.imported }} transactions added</div>
+            <div>{{ result.updated }} transactions updated</div>
+        </div>
+        <button class="btn btn-primary" onclick="document.getElementById('result-modal').remove(); location.reload();">OK</button>
+    </div>
+</div>
+{% endif %}

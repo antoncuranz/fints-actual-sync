@@ -1,0 +1,23 @@
+<div class="overlay" id="tan-modal">
+    <div class="modal">
+        <div class="text-center" style="margin-bottom: 20px;">
+            <div style="width: 48px; height: 48px; background: #fff3cd; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 22px;">🔐</div>
+            <h3 style="font-size: 16px;">TAN Required</h3>
+        </div>
+        <div style="background: #f8f9fa; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+            <div class="text-muted text-smaller" style="text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Challenge</div>
+            <div style="font-size: 13px; line-height: 1.5;">{{ challenge_text }}</div>
+        </div>
+        <form hx-post="/api/imports/{{ session_id }}/submit-tan/" hx-target="#modal-container">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>TAN</label>
+                <input type="text" name="tan" style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; text-align: center; letter-spacing: 4px;" placeholder="Enter TAN" autofocus>
+            </div>
+            <div class="flex gap-2">
+                <button type="button" class="btn btn-outline" style="flex:1;" onclick="document.getElementById('tan-modal').remove()">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="flex:1;">Submit</button>
+            </div>
+        </form>
+    </div>
+</div>
