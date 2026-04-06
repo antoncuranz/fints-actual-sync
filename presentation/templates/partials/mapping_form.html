@@ -47,7 +47,8 @@
                     const pw=document.querySelector('[name=budget_encryption_password]').value;
                     const body=new FormData();
                     if(pw) body.append('budget_encryption_password',pw);
-                    fetch(`/api/budgets/${sel.value}/accounts/`,{method:'POST',body:body}).then(r=>r.json()).then(accounts=>{
+                    const csrfToken=document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    fetch(`/api/budgets/${sel.value}/accounts/`,{method:'POST',body:body,headers:{'X-CSRFToken':csrfToken}}).then(r=>r.json()).then(accounts=>{
                         const asel=document.getElementById('account-select');
                         asel.innerHTML='';
                         accounts.forEach(a=>{
