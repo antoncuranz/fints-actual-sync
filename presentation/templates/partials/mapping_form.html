@@ -32,12 +32,30 @@
         <script>
             fetch('/api/budgets/').then(r=>r.json()).then(budgets=>{
                 const sel=document.getElementById('budget-select');
-                sel.innerHTML='<option value="">Select budget</option>'+budgets.map(b=>`<option value="${b.sync_id}">${b.name}</option>`).join('');
+                sel.innerHTML='';
+                const defaultOpt=document.createElement('option');
+                defaultOpt.value='';
+                defaultOpt.textContent='Select budget';
+                sel.appendChild(defaultOpt);
+                budgets.forEach(b=>{
+                    const opt=document.createElement('option');
+                    opt.value=b.sync_id;
+                    opt.textContent=b.name;
+                    sel.appendChild(opt);
+                });
                 sel.onchange=()=>{
                     const pw=document.querySelector('[name=budget_encryption_password]').value;
-                    fetch(`/api/budgets/${sel.value}/accounts/${pw?'?budget_encryption_password='+pw:''}`).then(r=>r.json()).then(accounts=>{
+                    const body=new FormData();
+                    if(pw) body.append('budget_encryption_password',pw);
+                    fetch(`/api/budgets/${sel.value}/accounts/`,{method:'POST',body:body}).then(r=>r.json()).then(accounts=>{
                         const asel=document.getElementById('account-select');
-                        asel.innerHTML=accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+                        asel.innerHTML='';
+                        accounts.forEach(a=>{
+                            const opt=document.createElement('option');
+                            opt.value=a.id;
+                            opt.textContent=a.name;
+                            asel.appendChild(opt);
+                        });
                     });
                 };
             });

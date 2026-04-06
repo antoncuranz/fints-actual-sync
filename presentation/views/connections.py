@@ -8,6 +8,7 @@ from presentation.dependency_config import get_manage_connections_use_case
 from presentation.forms import ConnectionForm
 
 
+@require_http_methods(["GET", "POST"])
 def create_connection(request):
     if request.method == "POST":
         form = ConnectionForm(request.POST)

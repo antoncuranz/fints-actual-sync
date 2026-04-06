@@ -18,7 +18,10 @@
             <div class="text-muted text-small">BLZ {{ item.connection.blz }} · User {{ item.connection.user_id }}</div>
         </div>
         <div class="flex gap-2">
-            <button class="btn btn-outline btn-sm" hx-post="/connections/{{ item.connection.id }}/discover-accounts/" hx-swap="none">Discover</button>
+            <form hx-post="/connections/{{ item.connection.id }}/discover-accounts/" hx-swap="none" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline btn-sm">Discover</button>
+            </form>
             <form hx-post="/connections/{{ item.connection.id }}/delete/" hx-swap="none">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-danger btn-sm">Delete</button>

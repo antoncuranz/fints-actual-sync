@@ -7,6 +7,7 @@ from django.views.decorators.http import require_http_methods
 from presentation.dependency_config import get_manage_mappings_use_case
 
 
+@require_http_methods(["GET", "POST"])
 def create_mapping(request):
     if request.method == "POST":
         uc = get_manage_mappings_use_case()
@@ -28,14 +29,16 @@ def delete_mapping(request, mapping_id):
     return HttpResponse(status=204, headers={"HX-Refresh": "true"})
 
 
+@require_http_methods(["GET"])
 def list_budgets(request):
     uc = get_manage_mappings_use_case()
     budgets = uc.list_budgets()
     return JsonResponse([{"sync_id": b.sync_id, "name": b.name} for b in budgets], safe=False)
 
 
+@require_http_methods(["POST"])
 def list_accounts(request, budget_id):
     uc = get_manage_mappings_use_case()
-    pw = request.GET.get("budget_encryption_password")
+    pw = request.POST.get("budget_encryption_password")
     accounts = uc.list_accounts_for_budget(budget_id, pw or None)
     return JsonResponse([{"id": a.id, "name": a.name} for a in accounts], safe=False)

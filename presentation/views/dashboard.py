@@ -1,8 +1,10 @@
 from django.shortcuts import render
+from django.views.decorators.http import require_http_methods
 
 from presentation.dependency_config import get_connection_repo, get_mapping_repo
 
 
+@require_http_methods(["GET"])
 def dashboard(request):
     connection_repo = get_connection_repo()
     mapping_repo = get_mapping_repo()
