@@ -52,6 +52,9 @@ class ImportSessionModel(models.Model):
     imported_count = models.IntegerField(default=0)
     skipped_count = models.IntegerField(default=0)
 
+    def __str__(self):
+        return f"Session {self.pk} — {self.status}"
+
     class Meta:
         app_label = "persistence"
         db_table = "import_sessions"

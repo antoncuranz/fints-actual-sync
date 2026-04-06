@@ -1,32 +1,29 @@
+from django.core.exceptions import ObjectDoesNotExist
+
 from domain.entities import AccountMapping, BankConnection, ImportSession, ImportStatus
-from domain.exceptions import InvalidSessionState
-from domain.ports import CredentialStore
 
 from .models import AccountMappingModel, BankConnectionModel, ImportSessionModel
 
 
 class ConnectionRepository:
-    def __init__(self, credential_store: CredentialStore | None = None):
-        self._credential_store = credential_store
-
     def get_by_id(self, id: int) -> BankConnection:
-        obj = BankConnectionModel.objects.get(pk=id)
+        try:
+            obj = BankConnectionModel.objects.get(pk=id)
+        except ObjectDoesNotExist:
+            raise ValueError(f"BankConnection {id} not found")
         return self._to_entity(obj)
 
     def get_all(self) -> list[BankConnection]:
         return [self._to_entity(obj) for obj in BankConnectionModel.objects.all()]
 
     def save(self, connection: BankConnection) -> BankConnection:
-        pin = connection.pin
-        if self._credential_store and connection.id == 0:
-            pin = self._credential_store.encrypt(pin)
         defaults = {
             "name": connection.name,
             "blz": connection.blz,
             "url": connection.url,
             "user_id": connection.user_id,
             "customer_id": connection.customer_id or "",
-            "pin": pin,
+            "pin": connection.pin,
         }
         if connection.id:
             obj, _ = BankConnectionModel.objects.update_or_create(pk=connection.id, defaults=defaults)
@@ -38,18 +35,18 @@ class ConnectionRepository:
         BankConnectionModel.objects.filter(pk=id).delete()
 
     def _to_entity(self, obj: BankConnectionModel) -> BankConnection:
-        pin = obj.pin
-        if self._credential_store:
-            pin = self._credential_store.decrypt(pin)
         return BankConnection(
             id=obj.id, name=obj.name, blz=obj.blz, url=obj.url,
-            user_id=obj.user_id, customer_id=obj.customer_id or None, pin=pin,
+            user_id=obj.user_id, customer_id=obj.customer_id or None, pin=obj.pin,
         )
 
 
 class MappingRepository:
     def get_by_id(self, id: int) -> AccountMapping:
-        obj = AccountMappingModel.objects.get(pk=id)
+        try:
+            obj = AccountMappingModel.objects.get(pk=id)
+        except ObjectDoesNotExist:
+            raise ValueError(f"AccountMapping {id} not found")
         return self._to_entity(obj)
 
     def get_all(self) -> list[AccountMapping]:
@@ -87,7 +84,10 @@ class MappingRepository:
 
 class SessionRepository:
     def get_by_id(self, id: int) -> ImportSession:
-        obj = ImportSessionModel.objects.get(pk=id)
+        try:
+            obj = ImportSessionModel.objects.get(pk=id)
+        except ObjectDoesNotExist:
+            raise ValueError(f"ImportSession {id} not found")
         return self._to_entity(obj)
 
     def save(self, session: ImportSession) -> ImportSession:
