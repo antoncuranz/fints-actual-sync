@@ -20,16 +20,16 @@ class ActualClientAdapter:
         transactions: list[NormalizedTransaction],
         budget_encryption_password: str | None,
     ) -> ImportResult:
-        params = {}
+        headers = {}
         if budget_encryption_password:
-            params["budgetEncryptionPassword"] = budget_encryption_password
+            headers["budget-encryption-password"] = budget_encryption_password
 
         payload = {"transactions": [self._serialize(tx) for tx in transactions]}
         try:
             resp = self._client.post(
                 f"{self._base_url}/budgets/{budget_id}/accounts/{account_id}/transactions/import",
                 json=payload,
-                params=params,
+                headers=headers,
             )
             resp.raise_for_status()
         except httpx.HTTPStatusError as exc:
@@ -41,11 +41,11 @@ class ActualClientAdapter:
         return ImportResult(added=data.get("added", []), updated=data.get("updated", []))
 
     def get_accounts(self, budget_id: str, budget_encryption_password: str | None) -> list[ActualAccount]:
-        params = {}
+        headers = {}
         if budget_encryption_password:
-            params["budgetEncryptionPassword"] = budget_encryption_password
+            headers["budget-encryption-password"] = budget_encryption_password
         try:
-            resp = self._client.get(f"{self._base_url}/budgets/{budget_id}/accounts", params=params)
+            resp = self._client.get(f"{self._base_url}/budgets/{budget_id}/accounts", headers=headers)
             resp.raise_for_status()
         except httpx.HTTPStatusError as exc:
             raise ActualExportError(f"Get accounts failed: {exc.response.status_code} — {exc.response.text}") from exc
