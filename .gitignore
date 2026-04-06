@@ -1,0 +1,11 @@
+.superpowers/
+.env
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.eggs/
+db.sqlite3
+.pytest_cache/

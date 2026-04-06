@@ -1,0 +1,26 @@
+[project]
+name = "fints-actual-sync"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.1",
+    "cryptography>=42",
+    "psycopg[binary]",
+    "httpx",
+    "dj-database-url",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-django",
+    "factory-boy",
+]
+
+[tool.setuptools.packages.find]
+include = ["config*", "domain*", "application*", "infrastructure*", "presentation*"]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
