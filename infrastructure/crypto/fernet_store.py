@@ -8,7 +8,7 @@ class FernetCredentialStore:
     def __init__(self):
         try:
             self._fernet = Fernet(settings.FERNET_KEY.encode())
-        except (ValueError, Exception) as exc:
+        except Exception as exc:
             raise ValueError(f"Invalid FERNET_KEY: {exc}") from exc
 
     def encrypt(self, plaintext: str) -> str:
