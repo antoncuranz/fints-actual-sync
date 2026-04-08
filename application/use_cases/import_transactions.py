@@ -10,6 +10,7 @@ from domain.ports import (
     CredentialStore,
     FinTSClientPort,
     MappingRepository,
+    NotificationPort,
     SessionRepository,
     TANChallenge,
 )
@@ -27,6 +28,8 @@ class ImportTransactionsUseCase:
         session_repo: SessionRepository,
         mapping_repo: MappingRepository,
         connection_repo: ConnectionRepository,
+        notification_port: NotificationPort | None = None,
+        base_url: str = "",
     ):
         self._fints = fints_port
         self._actual = actual_port
@@ -34,6 +37,8 @@ class ImportTransactionsUseCase:
         self._sessions = session_repo
         self._mappings = mapping_repo
         self._connections = connection_repo
+        self._notification = notification_port
+        self._base_url = base_url.rstrip("/")
 
     def execute(self, mapping_id: int, start_date: date, end_date=None) -> ImportResultDTO | TANRequiredDTO:
         mapping = self._mappings.get_by_id(mapping_id)
@@ -66,6 +71,12 @@ class ImportTransactionsUseCase:
                 tan_state_blob=result.tan_state_blob,
             ))
             logger.debug("import_execute tan_required session_id=%s", session.id)
+            if self._notification:
+                self._notification.notify_tan_required(
+                    session_id=session.id,
+                    challenge_text=result.challenge_text,
+                    tan_submit_url=f"{self._base_url}/" if self._base_url else "",
+                )
             return TANRequiredDTO(session_id=session.id, challenge_text=result.challenge_text)
 
         logger.debug("import_execute transaction_count=%s", len(result))
