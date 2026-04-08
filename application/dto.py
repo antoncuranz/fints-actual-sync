@@ -54,3 +54,17 @@ class ActualBudgetDTO:
 class ActualAccountDTO:
     id: str
     name: str
+
+
+@dataclass
+class SyncAllItemResult:
+    mapping_id: int
+    status: str
+    imported: int = 0
+    session_id: int | None = None
+    error: str | None = None
+
+
+@dataclass
+class SyncAllResultDTO:
+    results: list[SyncAllItemResult]
