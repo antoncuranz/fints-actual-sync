@@ -4,6 +4,7 @@ from .connections import create_connection, delete_connection, discover_accounts
 from .dashboard import dashboard
 from .import_api import start_import, submit_tan, sync_all
 from .mappings import create_mapping, delete_mapping, list_accounts, list_budgets
+from .settings import webhook_settings, webhook_settings_save, webhook_test
 
 urlpatterns = [
     path("", dashboard, name="dashboard"),
@@ -17,4 +18,7 @@ urlpatterns = [
     path("api/imports/", start_import, name="start_import"),
     path("api/imports/sync-all/", sync_all, name="sync_all"),
     path("api/imports/<int:session_id>/submit-tan/", submit_tan, name="submit_tan"),
+    path("settings/webhook/", webhook_settings, name="webhook_settings"),
+    path("settings/webhook/save/", webhook_settings_save, name="webhook_settings_save"),
+    path("settings/webhook/test/", webhook_test, name="webhook_test"),
 ]
