@@ -26,3 +26,23 @@ class ImportForm(forms.Form):
 
 class TANForm(forms.Form):
     tan = forms.CharField(max_length=12, widget=forms.TextInput(attrs={"class": "form-control", "style": "letter-spacing: 4px; text-align: center; font-size: 16px;", "placeholder": "Enter TAN", "autofocus": "autofocus"}))
+
+
+class WebhookConfigForm(forms.Form):
+    url = forms.URLField(
+        required=False,
+        widget=forms.URLInput(attrs={"class": "form-control", "placeholder": "https://hooks.example.com/trigger"}),
+    )
+    body_template = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 5, "placeholder": '{"event": "$event", "session_id": "$session_id"}'}),
+    )
+    method = forms.ChoiceField(
+        choices=[("POST", "POST"), ("PUT", "PUT")],
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    headers = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": '{"Authorization": "Bearer xxx"}'}),
+    )
+    enabled = forms.BooleanField(required=False)
