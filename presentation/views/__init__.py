@@ -2,7 +2,7 @@ from django.urls import path
 
 from .connections import create_connection, delete_connection, discover_accounts
 from .dashboard import dashboard
-from .import_api import start_import, submit_tan
+from .import_api import start_import, submit_tan, sync_all
 from .mappings import create_mapping, delete_mapping, list_accounts, list_budgets
 
 urlpatterns = [
@@ -15,5 +15,6 @@ urlpatterns = [
     path("api/budgets/", list_budgets, name="list_budgets"),
     path("api/budgets/<str:budget_id>/accounts/", list_accounts, name="list_accounts"),
     path("api/imports/", start_import, name="start_import"),
+    path("api/imports/sync-all/", sync_all, name="sync_all"),
     path("api/imports/<int:session_id>/submit-tan/", submit_tan, name="submit_tan"),
 ]
