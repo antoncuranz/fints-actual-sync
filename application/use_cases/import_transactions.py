@@ -1,3 +1,4 @@
+import logging
 from datetime import date, datetime
 
 from application.dto import ImportResultDTO, TANRequiredDTO
@@ -12,6 +13,9 @@ from domain.ports import (
     SessionRepository,
     TANChallenge,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class ImportTransactionsUseCase:
@@ -35,7 +39,20 @@ class ImportTransactionsUseCase:
         mapping = self._mappings.get_by_id(mapping_id)
         connection = self._connections.get_by_id(mapping.connection_id)
 
+        logger.debug(
+            "import_execute mapping_id=%s connection_id=%s iban_suffix=%s start_date=%s end_date=%s actual_budget_id=%s actual_account_id=%s",
+            mapping.id,
+            connection.id,
+            mapping.bank_account_iban[-4:],
+            start_date,
+            end_date,
+            mapping.actual_budget_id,
+            mapping.actual_account_id,
+        )
+
         result = self._fints.fetch_transactions(connection, mapping.bank_account_iban, start_date, end_date)
+
+        logger.debug("import_execute fetch_result_type=%s", type(result).__name__)
 
         if isinstance(result, TANChallenge):
             session = self._sessions.save(ImportSession(
@@ -48,6 +65,8 @@ class ImportTransactionsUseCase:
                 dialog_state_blob=result.dialog_state_blob,
                 tan_state_blob=result.tan_state_blob,
             ))
+            logger.debug("import_execute tan_required session_id=%s", session.id)
             return TANRequiredDTO(session_id=session.id, challenge_text=result.challenge_text)
 
+        logger.debug("import_execute transaction_count=%s", len(result))
         return export_to_actual(result, mapping, self._actual)
