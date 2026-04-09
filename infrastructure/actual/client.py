@@ -1,8 +1,13 @@
+import logging
+
 import httpx
 
 from domain.entities import NormalizedTransaction
 from domain.exceptions import ActualExportError
 from domain.ports import ActualAccount, ActualBudget, ImportResult
+
+
+logger = logging.getLogger(__name__)
 
 
 class ActualClientAdapter:
@@ -25,6 +30,14 @@ class ActualClientAdapter:
             headers["budget-encryption-password"] = budget_encryption_password
 
         payload = {"transactions": [self._serialize(tx) for tx in transactions]}
+        logger.debug(
+            "actual_import budget_id=%s account_id=%s transaction_count=%s first_payload=%s has_budget_password=%s",
+            budget_id,
+            account_id,
+            len(payload["transactions"]),
+            payload["transactions"][0] if payload["transactions"] else None,
+            bool(budget_encryption_password),
+        )
         try:
             resp = self._client.post(
                 f"{self._base_url}/budgets/{budget_id}/accounts/{account_id}/transactions/import",
@@ -33,11 +46,30 @@ class ActualClientAdapter:
             )
             resp.raise_for_status()
         except httpx.HTTPStatusError as exc:
+            logger.exception(
+                "actual_import http_error status=%s response=%s transaction_count=%s first_payload=%s",
+                exc.response.status_code,
+                exc.response.text,
+                len(payload["transactions"]),
+                payload["transactions"][0] if payload["transactions"] else None,
+            )
             raise ActualExportError(f"Import failed: {exc.response.status_code} — {exc.response.text}") from exc
         except httpx.RequestError as exc:
+            logger.exception(
+                "actual_import request_error transaction_count=%s first_payload=%s",
+                len(payload["transactions"]),
+                payload["transactions"][0] if payload["transactions"] else None,
+            )
             raise ActualExportError(f"Import request failed: {exc}") from exc
 
         data = resp.json()["data"]
+        logger.debug(
+            "actual_import response_keys=%s added=%s updated=%s data=%s",
+            sorted(data.keys()),
+            len(data.get("added", [])),
+            len(data.get("updated", [])),
+            data,
+        )
         return ImportResult(added=data.get("added", []), updated=data.get("updated", []))
 
     def get_accounts(self, budget_id: str, budget_encryption_password: str | None) -> list[ActualAccount]:

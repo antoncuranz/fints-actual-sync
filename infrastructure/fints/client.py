@@ -65,15 +65,25 @@ class FinTSClientAdapter:
         end_date: datetime.date | None,
     ) -> list[NormalizedTransaction] | TANChallenge:
         client = self._create_client(connection)
+        logger.debug(
+            "fints_fetch start connection_id=%s iban_suffix=%s start_date=%s end_date=%s",
+            connection.id,
+            iban[-4:],
+            start_date,
+            end_date,
+        )
         try:
             with client:
                 accounts = client.get_sepa_accounts()
+                logger.debug("fints_fetch sepa_account_count=%s", len(accounts))
                 account = next((a for a in accounts if a.iban == iban), None)
                 if account is None:
                     raise ValueError(f"No SEPA account found for IBAN {iban}")
                 result = client.get_transactions(account, start_date, end_date)
+                logger.debug("fints_fetch raw_result_type=%s", type(result).__name__)
 
                 if isinstance(result, NeedTANResponse):
+                    logger.debug("fints_fetch tan_required")
                     return TANChallenge(
                         challenge_text=result.challenge or "Please enter TAN",
                         client_state_blob=client.deconstruct(including_private=True),
@@ -85,7 +95,17 @@ class FinTSClientAdapter:
         except Exception as exc:
             self._handle_fints_error(exc, "fetch_transactions failed")
 
-        return [self._normalize(tx) for tx in result]
+        normalized = [self._normalize(tx) for tx in result]
+        logger.debug(
+            "fints_fetch normalized_count=%s first_transaction=%s",
+            len(normalized),
+            {
+                "date": normalized[0].date,
+                "amount": normalized[0].amount,
+                "imported_id": normalized[0].imported_id,
+            } if normalized else None,
+        )
+        return normalized
 
     def submit_tan(
         self,
@@ -100,8 +120,10 @@ class FinTSClientAdapter:
         try:
             with client.resume_dialog(dialog_state):
                 result = client.send_tan(challenge, tan)
+                logger.debug("fints_submit_tan raw_result_type=%s", type(result).__name__)
 
                 if isinstance(result, NeedTANResponse):
+                    logger.debug("fints_submit_tan tan_required")
                     return TANChallenge(
                         challenge_text=result.challenge or "Please enter TAN",
                         client_state_blob=client.deconstruct(including_private=True),
@@ -113,7 +135,17 @@ class FinTSClientAdapter:
         except Exception as exc:
             self._handle_fints_error(exc, "submit_tan failed")
 
-        return [self._normalize(tx) for tx in result]
+        normalized = [self._normalize(tx) for tx in result]
+        logger.debug(
+            "fints_submit_tan normalized_count=%s first_transaction=%s",
+            len(normalized),
+            {
+                "date": normalized[0].date,
+                "amount": normalized[0].amount,
+                "imported_id": normalized[0].imported_id,
+            } if normalized else None,
+        )
+        return normalized
 
     def _normalize(self, tx) -> NormalizedTransaction:
         data = tx.data if hasattr(tx, "data") else {}

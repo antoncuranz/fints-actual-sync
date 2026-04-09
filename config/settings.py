@@ -67,3 +67,30 @@ ACTUAL_API_URL = os.getenv("ACTUAL_API_URL", "http://localhost:5007")
 ACTUAL_API_KEY = os.getenv("ACTUAL_API_KEY", "")
 
 TAN_SESSION_TIMEOUT_MINUTES = int(os.getenv("TAN_SESSION_TIMEOUT_MINUTES", "15"))
+
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "application": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "presentation": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "infrastructure": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+    },
+}
