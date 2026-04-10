@@ -18,6 +18,8 @@ def export_to_actual(transactions, mapping, actual_port) -> ImportResultDTO:
             "imported_id": transactions[0].imported_id,
         } if transactions else None,
     )
+    if not transactions:
+        return ImportResultDTO(status="completed", imported=0, updated=0)
     for tx in transactions:
         tx.account = mapping.actual_account_id
     budget_pw = mapping.budget_encryption_password

@@ -22,6 +22,7 @@ class FinTSClientAdapter:
             pin=connection.pin,
             server=connection.url,
             customer_id=connection.customer_id or connection.user_id,
+            force_twostep_tan={"HKKAZ", "HKCAZ"},
             product_id=self.product_id,
             product_version=self.product_version,
             from_data=from_data,
