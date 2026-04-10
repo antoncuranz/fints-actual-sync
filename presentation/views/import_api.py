@@ -5,6 +5,7 @@ from datetime import date
 
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from presentation.dependency_config import get_import_use_case, get_submit_tan_use_case, get_sync_all_use_case
@@ -54,6 +55,7 @@ def submit_tan(request, session_id):
 
 
 @require_http_methods(["POST"])
+@csrf_exempt
 def sync_all(request):
     start_date_str = request.GET.get("start_date") or request.POST.get("start_date")
     start_date = None
