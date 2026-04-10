@@ -58,3 +58,20 @@ class ImportSessionModel(models.Model):
     class Meta:
         app_label = "persistence"
         db_table = "import_sessions"
+
+
+class WebhookConfigModel(models.Model):
+    url = models.URLField(blank=True, default="")
+    body_template = models.TextField(
+        default='{"event": "$event", "session_id": "$session_id", "challenge_text": "$challenge_text", "tan_submit_url": "$tan_submit_url"}',
+    )
+    method = models.CharField(max_length=10, choices=[("POST", "POST"), ("PUT", "PUT")], default="POST")
+    headers = models.JSONField(default=dict, blank=True)
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = "persistence"
+        db_table = "webhook_config"
+
+    def __str__(self):
+        return f"WebhookConfig ({self.url})"

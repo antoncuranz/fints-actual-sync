@@ -4,6 +4,7 @@ from application.use_cases.import_transactions import ImportTransactionsUseCase
 from application.use_cases.manage_connections import ManageConnectionsUseCase
 from application.use_cases.manage_mappings import ManageMappingsUseCase
 from application.use_cases.submit_tan import SubmitTANUseCase
+from application.use_cases.sync_all import SyncAllUseCase
 from infrastructure.actual.client import ActualClientAdapter
 from infrastructure.crypto.fernet_store import FernetCredentialStore
 from infrastructure.fints.client import FinTSClientAdapter
@@ -12,6 +13,7 @@ from infrastructure.persistence.repositories import (
     MappingRepository,
     SessionRepository,
 )
+from infrastructure.webhook.notifier import WebhookNotifier
 
 
 def get_credential_store() -> FernetCredentialStore:
@@ -38,6 +40,10 @@ def get_session_repo() -> SessionRepository:
     return SessionRepository()
 
 
+def get_webhook_notifier() -> WebhookNotifier:
+    return WebhookNotifier()
+
+
 def get_import_use_case() -> ImportTransactionsUseCase:
     return ImportTransactionsUseCase(
         fints_port=get_fints_client(),
@@ -46,6 +52,8 @@ def get_import_use_case() -> ImportTransactionsUseCase:
         session_repo=get_session_repo(),
         mapping_repo=get_mapping_repo(),
         connection_repo=get_connection_repo(),
+        notification_port=get_webhook_notifier(),
+        base_url=getattr(settings, "BASE_URL", "http://localhost:8000"),
     )
 
 
@@ -74,4 +82,10 @@ def get_manage_mappings_use_case() -> ManageMappingsUseCase:
         mapping_repo=get_mapping_repo(),
         actual_port=get_actual_client(),
         credential_store=get_credential_store(),
+    )
+
+
+def get_sync_all_use_case() -> SyncAllUseCase:
+    return SyncAllUseCase(
+        import_use_case=get_import_use_case(),
     )

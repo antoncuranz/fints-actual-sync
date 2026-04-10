@@ -67,6 +67,7 @@ ACTUAL_API_URL = os.getenv("ACTUAL_API_URL", "http://localhost:5007")
 ACTUAL_API_KEY = os.getenv("ACTUAL_API_KEY", "")
 
 TAN_SESSION_TIMEOUT_MINUTES = int(os.getenv("TAN_SESSION_TIMEOUT_MINUTES", "15"))
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 

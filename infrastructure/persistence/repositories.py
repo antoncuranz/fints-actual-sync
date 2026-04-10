@@ -2,7 +2,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from domain.entities import AccountMapping, BankConnection, ImportSession, ImportStatus
 
-from .models import AccountMappingModel, BankConnectionModel, ImportSessionModel
+from .models import AccountMappingModel, BankConnectionModel, ImportSessionModel, WebhookConfigModel
 
 
 class ConnectionRepository:
@@ -126,3 +126,26 @@ class SessionRepository:
             imported_count=obj.imported_count,
             skipped_count=obj.skipped_count,
         )
+
+
+class WebhookConfigRepository:
+    def get_config(self) -> WebhookConfigModel | None:
+        try:
+            return WebhookConfigModel.objects.first()
+        except WebhookConfigModel.DoesNotExist:
+            return None
+
+    def save(self, url: str, body_template: str, method: str, headers: dict, enabled: bool) -> WebhookConfigModel:
+        obj = WebhookConfigModel.objects.first()
+        if obj:
+            obj.url = url
+            obj.body_template = body_template
+            obj.method = method
+            obj.headers = headers
+            obj.enabled = enabled
+            obj.save()
+        else:
+            obj = WebhookConfigModel.objects.create(
+                url=url, body_template=body_template, method=method, headers=headers, enabled=enabled,
+            )
+        return obj

@@ -1,10 +1,13 @@
 import logging
 
 from django.http import HttpResponse
+from datetime import date
+
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
-from presentation.dependency_config import get_import_use_case, get_submit_tan_use_case
+from presentation.dependency_config import get_import_use_case, get_submit_tan_use_case, get_sync_all_use_case
 from presentation.forms import ImportForm, TANForm
 
 
@@ -48,3 +51,30 @@ def submit_tan(request, session_id):
     result = uc.execute(session_id=session_id, tan=form.cleaned_data["tan"])
     logger.debug("submit_tan result_type=%s", type(result).__name__)
     return render(request, "partials/import_result.html", {"result": result})
+
+
+@require_http_methods(["POST"])
+def sync_all(request):
+    start_date_str = request.GET.get("start_date") or request.POST.get("start_date")
+    start_date = None
+    if start_date_str:
+        try:
+            start_date = date.fromisoformat(start_date_str)
+        except ValueError:
+            return JsonResponse({"error": "Invalid start_date format. Use YYYY-MM-DD."}, status=400)
+
+    uc = get_sync_all_use_case()
+    result = uc.execute(start_date=start_date)
+
+    return JsonResponse({
+        "results": [
+            {
+                "mapping_id": r.mapping_id,
+                "status": r.status,
+                "imported": r.imported,
+                "session_id": r.session_id,
+                "error": r.error,
+            }
+            for r in result.results
+        ]
+    })
