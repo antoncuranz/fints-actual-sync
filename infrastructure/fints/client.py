@@ -175,5 +175,5 @@ class FinTSClientAdapter:
             imported_payee=applicant_name,
             imported_id=bank_ref,
             notes=purpose,
-            cleared=False,
+            cleared=True,
         )
