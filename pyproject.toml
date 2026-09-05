@@ -5,7 +5,7 @@ requires-python = ">=3.12"
 dependencies = [
     "django>=5.1",
     "cryptography>=42",
-    "fints @ git+https://github.com/ArlindNocaj/python-fints.git@fix/consorsbank-compatibility",
+    "fints @ git+https://github.com/ArlindNocaj/python-fints.git@fix/consorsbank-login-sca-hkidn",
     "psycopg[binary]",
     "httpx",
     "dj-database-url",
