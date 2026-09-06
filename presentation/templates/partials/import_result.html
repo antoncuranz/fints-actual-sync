@@ -1,5 +1,5 @@
 {% if result.status == "tan_required" %}
-    {% include "partials/tan_modal.html" with session_id=result.session_id challenge_text=result.challenge_text %}
+    {% include "partials/tan_modal.html" with session_id=result.session_id challenge_text=result.challenge_text decoupled=result.decoupled %}
 {% elif result.status == "completed" %}
 <div class="overlay" id="result-modal">
     <div class="modal text-center">

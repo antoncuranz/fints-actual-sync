@@ -8,7 +8,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from presentation.dependency_config import get_import_use_case, get_submit_tan_use_case, get_sync_all_use_case
+from presentation.dependency_config import get_import_use_case, get_session_repo, get_submit_tan_use_case, get_sync_all_use_case
 from presentation.forms import ImportForm, TANForm
 
 
@@ -41,7 +41,8 @@ def start_import(request):
 
 @require_http_methods(["POST"])
 def submit_tan(request, session_id):
-    form = TANForm(request.POST)
+    session = get_session_repo().get_by_id(session_id)
+    form = TANForm(request.POST, decoupled=session.decoupled)
     if not form.is_valid():
         logger.warning("submit_tan invalid_form session_id=%s errors=%s", session_id, form.errors.get_json_data())
         return HttpResponse("Invalid TAN", status=400)

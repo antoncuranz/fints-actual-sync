@@ -69,6 +69,10 @@ class ImportTransactionsUseCase:
                 client_state_blob=result.client_state_blob,
                 dialog_state_blob=result.dialog_state_blob,
                 tan_state_blob=result.tan_state_blob,
+                decoupled=result.decoupled,
+                resume_transaction_fetch=result.resume_transaction_fetch,
+                start_date=start_date,
+                end_date=end_date,
             ))
             logger.debug("import_execute tan_required session_id=%s", session.id)
             if self._notification:
@@ -77,7 +81,7 @@ class ImportTransactionsUseCase:
                     challenge_text=result.challenge_text,
                     tan_submit_url=f"{self._base_url}/" if self._base_url else "",
                 )
-            return TANRequiredDTO(session_id=session.id, challenge_text=result.challenge_text)
+            return TANRequiredDTO(session_id=session.id, challenge_text=result.challenge_text, decoupled=result.decoupled)
 
         logger.debug("import_execute transaction_count=%s", len(result))
         return export_to_actual(result, mapping, self._actual)

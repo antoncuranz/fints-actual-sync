@@ -27,6 +27,10 @@ class ImportForm(forms.Form):
 class TANForm(forms.Form):
     tan = forms.CharField(max_length=12, widget=forms.TextInput(attrs={"class": "form-control", "style": "letter-spacing: 4px; text-align: center; font-size: 16px;", "placeholder": "Enter TAN", "autofocus": "autofocus"}))
 
+    def __init__(self, *args, decoupled=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["tan"].required = not decoupled
+
 
 class WebhookConfigForm(forms.Form):
     url = forms.URLField(

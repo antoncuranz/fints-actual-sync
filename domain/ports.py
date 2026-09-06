@@ -11,11 +11,21 @@ from .entities import (
 
 
 class TANChallenge:
-    def __init__(self, challenge_text: str, client_state_blob: bytes, dialog_state_blob: bytes, tan_state_blob: bytes):
+    def __init__(
+        self,
+        challenge_text: str,
+        client_state_blob: bytes,
+        dialog_state_blob: bytes,
+        tan_state_blob: bytes,
+        decoupled: bool = False,
+        resume_transaction_fetch: bool = False,
+    ):
         self.challenge_text = challenge_text
         self.client_state_blob = client_state_blob
         self.dialog_state_blob = dialog_state_blob
         self.tan_state_blob = tan_state_blob
+        self.decoupled = decoupled
+        self.resume_transaction_fetch = resume_transaction_fetch
 
 
 class ImportResult:
@@ -39,7 +49,7 @@ class ActualBudget:
 class FinTSClientPort(Protocol):
     def fetch_accounts(self, connection: BankConnection) -> list[BankAccount]: ...
     def fetch_transactions(self, connection: BankConnection, iban: str, start_date: date, end_date: date | None) -> list[NormalizedTransaction] | TANChallenge: ...
-    def submit_tan(self, connection: BankConnection, client_state: bytes, dialog_state: bytes, tan_state: bytes, tan: str) -> list[NormalizedTransaction] | TANChallenge: ...
+    def submit_tan(self, connection: BankConnection, client_state: bytes, dialog_state: bytes, tan_state: bytes, tan: str, iban: str, start_date: date, end_date: date | None, resume_transaction_fetch: bool, decoupled: bool) -> list[NormalizedTransaction] | TANChallenge: ...
 
 
 class ActualClientPort(Protocol):

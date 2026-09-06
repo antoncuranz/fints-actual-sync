@@ -12,6 +12,7 @@ class ImportResultDTO:
 class TANRequiredDTO:
     session_id: int
     challenge_text: str
+    decoupled: bool = False
     status: str = "tan_required"
 
 

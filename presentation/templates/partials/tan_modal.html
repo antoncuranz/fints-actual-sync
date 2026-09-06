@@ -10,13 +10,17 @@
         </div>
         <form hx-post="/api/imports/{{ session_id }}/submit-tan/" hx-target="#modal-container">
             {% csrf_token %}
+            {% if decoupled %}
+            <p class="text-muted">Approve the request in the Consorsbank app, then continue.</p>
+            {% else %}
             <div class="form-group">
                 <label>TAN</label>
-                <input type="text" name="tan" style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; text-align: center; letter-spacing: 4px;" placeholder="Enter TAN" autofocus>
+                <input type="text" name="tan" style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; text-align: center; letter-spacing: 4px;" placeholder="Enter TAN" autofocus required>
             </div>
+            {% endif %}
             <div class="flex gap-2">
                 <button type="button" class="btn btn-outline" style="flex:1;" onclick="document.getElementById('tan-modal').remove()">Cancel</button>
-                <button type="submit" class="btn btn-primary" style="flex:1;">Submit</button>
+                <button type="submit" class="btn btn-primary" style="flex:1;">{% if decoupled %}Continue{% else %}Submit{% endif %}</button>
             </div>
         </form>
     </div>

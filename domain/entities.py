@@ -51,6 +51,10 @@ class ImportSession:
     client_state_blob: bytes | None = None
     dialog_state_blob: bytes | None = None
     tan_state_blob: bytes | None = None
+    decoupled: bool = False
+    resume_transaction_fetch: bool = False
+    start_date: date | None = None
+    end_date: date | None = None
     error_message: str | None = None
     imported_count: int = 0
     skipped_count: int = 0
