@@ -22,7 +22,7 @@ class FinTSClientAdapter:
             pin=connection.pin,
             server=connection.url,
             customer_id=connection.customer_id or connection.user_id,
-            force_twostep_tan={"HKKAZ", "HKCAZ"},
+            force_twostep_tan={"HKKAZ", "HKSAL"},
             product_id=self.product_id,
             product_version=self.product_version,
             from_data=from_data,
@@ -74,7 +74,12 @@ class FinTSClientAdapter:
             end_date,
         )
         try:
+            if not client.get_current_tan_mechanism():
+                client.fetch_tan_mechanisms()
+            client.set_tan_mechanism("901")
             with client:
+                if isinstance(client.init_tan_response, NeedTANResponse):
+                    return self._challenge(client, client.init_tan_response, True)
                 accounts = client.get_sepa_accounts()
                 logger.debug("fints_fetch sepa_account_count=%s", len(accounts))
                 account = next((a for a in accounts if a.iban == iban), None)
@@ -85,12 +90,7 @@ class FinTSClientAdapter:
 
                 if isinstance(result, NeedTANResponse):
                     logger.debug("fints_fetch tan_required")
-                    return TANChallenge(
-                        challenge_text=result.challenge or "Please enter TAN",
-                        client_state_blob=client.deconstruct(including_private=True),
-                        dialog_state_blob=client.pause_dialog(),
-                        tan_state_blob=result.get_data(),
-                    )
+                    return self._challenge(client, result, False)
         except (FinTSConnectionError, FinTSAuthenticationError, ValueError):
             raise
         except Exception as exc:
@@ -115,9 +115,15 @@ class FinTSClientAdapter:
         dialog_state: bytes,
         tan_state: bytes,
         tan: str,
+        iban: str,
+        start_date: datetime.date,
+        end_date: datetime.date | None,
+        resume_transaction_fetch: bool,
+        decoupled: bool,
     ) -> list[NormalizedTransaction] | TANChallenge:
         client = self._create_client(connection, from_data=client_state)
         challenge = NeedTANResponse.from_data(tan_state)
+        challenge.decoupled = decoupled
         try:
             with client.resume_dialog(dialog_state):
                 result = client.send_tan(challenge, tan)
@@ -125,12 +131,15 @@ class FinTSClientAdapter:
 
                 if isinstance(result, NeedTANResponse):
                     logger.debug("fints_submit_tan tan_required")
-                    return TANChallenge(
-                        challenge_text=result.challenge or "Please enter TAN",
-                        client_state_blob=client.deconstruct(including_private=True),
-                        dialog_state_blob=client.pause_dialog(),
-                        tan_state_blob=result.get_data(),
-                    )
+                    return self._challenge(client, result, resume_transaction_fetch)
+                if resume_transaction_fetch:
+                    accounts = client.get_sepa_accounts()
+                    account = next((account for account in accounts if account.iban == iban), None)
+                    if account is None:
+                        raise ValueError(f"No SEPA account found for IBAN {iban}")
+                    result = client.get_transactions(account, start_date, end_date)
+                    if isinstance(result, NeedTANResponse):
+                        return self._challenge(client, result, False)
         except (FinTSConnectionError, FinTSAuthenticationError):
             raise
         except Exception as exc:
@@ -147,6 +156,16 @@ class FinTSClientAdapter:
             } if normalized else None,
         )
         return normalized
+
+    def _challenge(self, client: FinTS3PinTanClient, response: NeedTANResponse, resume_transaction_fetch: bool) -> TANChallenge:
+        return TANChallenge(
+            challenge_text=response.challenge or "Please enter TAN",
+            client_state_blob=client.deconstruct(including_private=True),
+            dialog_state_blob=client.pause_dialog(),
+            tan_state_blob=response.get_data(),
+            decoupled=bool(getattr(response, "decoupled", False)),
+            resume_transaction_fetch=resume_transaction_fetch,
+        )
 
     def _normalize(self, tx) -> NormalizedTransaction:
         data = tx.data if hasattr(tx, "data") else {}

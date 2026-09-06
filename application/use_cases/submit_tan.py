@@ -1,4 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
+
+from django.utils import timezone
 
 from application.dto import ImportResultDTO, TANRequiredDTO
 from application.use_cases._export import export_to_actual
@@ -39,9 +41,11 @@ class SubmitTANUseCase:
 
         if session.status != ImportStatus.TAN_REQUIRED:
             raise InvalidSessionState(f"Session {session_id} is not waiting for TAN")
+        if not tan and not session.decoupled:
+            raise InvalidSessionState(f"Session {session_id} requires a TAN")
 
         timeout = timedelta(minutes=self._timeout_minutes)
-        if datetime.now() - session.started_at > timeout:
+        if timezone.now() - session.started_at > timeout:
             self._sessions.delete(session.id)
             raise TanSessionExpiredError(f"Session {session_id} has expired")
 
@@ -49,7 +53,16 @@ class SubmitTANUseCase:
         mapping = self._mappings.get_by_id(session.mapping_id)
 
         result = self._fints.submit_tan(
-            connection, session.client_state_blob, session.dialog_state_blob, session.tan_state_blob, tan
+            connection,
+            session.client_state_blob,
+            session.dialog_state_blob,
+            session.tan_state_blob,
+            tan,
+            mapping.bank_account_iban,
+            session.start_date,
+            session.end_date,
+            session.resume_transaction_fetch,
+            session.decoupled,
         )
 
         if isinstance(result, TANChallenge):
@@ -57,8 +70,10 @@ class SubmitTANUseCase:
             session.client_state_blob = result.client_state_blob
             session.dialog_state_blob = result.dialog_state_blob
             session.tan_state_blob = result.tan_state_blob
+            session.decoupled = result.decoupled
+            session.resume_transaction_fetch = result.resume_transaction_fetch
             self._sessions.save(session)
-            return TANRequiredDTO(session_id=session.id, challenge_text=result.challenge_text)
+            return TANRequiredDTO(session_id=session.id, challenge_text=result.challenge_text, decoupled=result.decoupled)
 
         self._sessions.delete(session.id)
         return export_to_actual(result, mapping, self._actual)

@@ -5,7 +5,7 @@ requires-python = ">=3.12"
 dependencies = [
     "django>=5.1",
     "cryptography>=42",
-    "fints @ git+https://github.com/ArlindNocaj/python-fints.git@fix/consorsbank-login-sca-hkidn",
+    "fints @ git+https://github.com/ArlindNocaj/python-fints.git@07abcb53be38b865d28027dd21cc51193f70da03",
     "psycopg[binary]",
     "httpx",
     "dj-database-url",
@@ -21,6 +21,9 @@ dev = [
 
 [tool.setuptools.packages.find]
 include = ["config*", "domain*", "application*", "infrastructure*", "presentation*"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
 
 [build-system]
 requires = ["setuptools>=68.0"]
